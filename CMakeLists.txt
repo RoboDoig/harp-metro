@@ -23,7 +23,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico2 CACHE STRING "Board type")
+set(PICO_BOARD adafruit_feather_rp2040 CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -32,6 +32,8 @@ project(harp-metro C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
+
+add_subdirectory(./firmware/harp.core.rp2040/firmware build) # Path to harp.core.rp2040's CMakeLists.txt
 
 # Add executable. Default name is the project name, version 0.1
 
@@ -47,6 +49,7 @@ pico_enable_stdio_usb(harp-metro 0)
 # Add the standard library to the build
 target_link_libraries(harp-metro
         pico_stdlib)
+target_link_libraries(${PROJECT_NAME} harp_core harp_sync)
 
 # Add the standard include files to the build
 target_include_directories(harp-metro PRIVATE
