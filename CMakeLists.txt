@@ -37,7 +37,7 @@ add_subdirectory(./firmware/harp.core.rp2040/firmware build) # Path to harp.core
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(harp-metro harp-metro.c )
+add_executable(harp-metro main.cpp )
 
 pico_set_program_name(harp-metro "harp-metro")
 pico_set_program_version(harp-metro "0.1")
