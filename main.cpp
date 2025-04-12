@@ -48,10 +48,13 @@ RegFnPair reg_handler_fns[reg_count]
 int main() {
     gpio_init(13);
     gpio_set_dir(13, GPIO_OUT);
+    gpio_init(8);
+    gpio_set_dir(8, GPIO_IN);
     while(true) {
-        gpio_put(13, true);
-        sleep_ms(100);
-        gpio_put(13, false);
-        sleep_ms(100);
+        // gpio_put(13, true);
+        // sleep_ms(100);
+        // gpio_put(13, false);
+        // sleep_ms(100);
+        gpio_put(13, gpio_get(8));
     }
 }
