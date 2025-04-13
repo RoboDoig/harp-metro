@@ -21,8 +21,21 @@ const uint8_t fw_version_major = 3;
 const uint8_t fw_version_minor = 0;
 const uint16_t serial_number = 0xCAFE;
 
+// Change this to be whatever pin is plugged into your "DATA" pin.
+const uint RADIO_TRANSMIT_PIN = 16;
+// You will need to change all of these values for your remote + plug.
+// You should first run the "recieve" example
+// to test out what your remote sends out.
+const uint PULSE_LENGTH = 169; // set this to PULSELENGTH RECIEVED
+const uint REPEAT_TRANSMIT = 20; // set this to whatever works best for you.
+const uint PROTOCOL = 1; // set this to PROTOCOL RECIEVED
+const uint BIT_LENGTH = 24; // set this to BIT LENGTH RECIEVED
+const uint ON_CODE = 1398067; // set this to VALUE RECEIVED when you press the on button
+const uint OFF_CODE = 1398076; // set this to VALUE RECEIVED when you press the off button
+RCSwitch mySwitch;
+
 // Harp App Register Setup.
-const size_t reg_count = 2;
+const size_t reg_count = 3;
 
 // Define register contents.
 #pragma pack(push, 1)
@@ -30,6 +43,7 @@ struct app_regs_t
 {
     volatile uint8_t test_byte;  // app register 0
     volatile uint32_t test_uint; // app register 1
+    volatile uint32_t event_uint; // app register 2
 } app_regs;
 #pragma pack(pop)
 
@@ -37,13 +51,15 @@ struct app_regs_t
 RegSpecs app_reg_specs[reg_count]
 {
     {(uint8_t*)&app_regs.test_byte, sizeof(app_regs.test_byte), U8},
-    {(uint8_t*)&app_regs.test_uint, sizeof(app_regs.test_uint), U32}
+    {(uint8_t*)&app_regs.test_uint, sizeof(app_regs.test_uint), U32},
+    {(uint8_t*)&app_regs.event_uint, sizeof(app_regs.event_uint), U32}
 };
 
 // Define register read-and-write handler functions.
 RegFnPair reg_handler_fns[reg_count]
 {
     {&HarpCore::read_reg_generic, &HarpCore::write_reg_generic},
+    {&HarpCore::read_reg_generic, &HarpCore::write_to_read_only_reg_error},
     {&HarpCore::read_reg_generic, &HarpCore::write_to_read_only_reg_error}
 };
 
@@ -51,31 +67,36 @@ void app_reset()
 {
     app_regs.test_byte = 0;
     app_regs.test_uint = 0;
+    app_regs.event_uint = 0;
 }
 
 void update_app_state()
 {
-    // update here!
-    // If app registers update their states outside the read/write handler
-    // functions, update them here.
-    // (Called inside run() function.)
-
-    // gpio_put(13, gpio_get(8));
-    // app_regs.test_uint = gpio_get(8);
-    // HarpCore::send_harp_reply(EVENT, 33);
-
     uint32_t pin_state = gpio_get(8);
     uint32_t old_pin_state = app_regs.test_uint;
 
+    uint32_t event_pin_state = gpio_get(10);
+
     // update app reg
     app_regs.test_uint = pin_state;
+    app_regs.event_uint = event_pin_state;
 
     // filter for change
     uint32_t changed_pin = ((old_pin_state ^ app_regs.test_uint));
 
     if (changed_pin) {
         HarpCore::send_harp_reply(EVENT, 33);
+        
+        if (pin_state) {
+            mySwitch.send(ON_CODE,BIT_LENGTH);
+            gpio_put(13, true);
+        } else {
+            mySwitch.send(ON_CODE,BIT_LENGTH);
+            gpio_put(13, false);
+        }
     }
+
+    HarpCore::send_harp_reply(EVENT, 34);
 }
 
 // Create Harp App.
@@ -93,34 +114,54 @@ int main() {
     // Init gpio
     gpio_init(13);
     gpio_set_dir(13, GPIO_OUT);
-//     gpio_init(8);
-//     gpio_set_dir(8, GPIO_IN);
-
-//     // Init Synchronizer.
-//     HarpSynchronizer& sync = HarpSynchronizer::init(uart1, 5);
-//     app.set_synchronizer(&sync);
-// #ifdef DEBUG
-//     stdio_uart_init_full(uart0, 921600, 0, -1); // use uart1 tx only.
-//     printf("Hello, from an RP2040!\r\n");
-// #endif
-//     while(true)
-//     {
-//         app.run();
-//     }
+    gpio_init(8);
+    gpio_set_dir(8, GPIO_IN);
+    
     stdio_init_all();
-    const uint RADIO_RECEIVER_PIN = 17;
-    gpio_init(RADIO_RECEIVER_PIN);
+    // Although calling enableTransmit sets the direction, we still need to init the pin.
+    gpio_init(RADIO_TRANSMIT_PIN);
+    mySwitch = RCSwitch();
+    mySwitch.enableTransmit(RADIO_TRANSMIT_PIN);
+    mySwitch.setProtocol(PROTOCOL);
+    mySwitch.setPulseLength(PULSE_LENGTH);
+    mySwitch.setRepeatTransmit(REPEAT_TRANSMIT);
 
-    RCSwitch rcSwitch = RCSwitch();
-    rcSwitch.enableReceive(RADIO_RECEIVER_PIN);
-
-    while (true) {
-        if (rcSwitch.available()) {
-            gpio_put(13, true);
-
-            rcSwitch.resetAvailable();
-        } else {
-            gpio_put(13, false);
-        }
+    // Init Synchronizer.
+    HarpSynchronizer& sync = HarpSynchronizer::init(uart1, 5);
+    app.set_synchronizer(&sync);
+#ifdef DEBUG
+    stdio_uart_init_full(uart0, 921600, 0, -1); // use uart1 tx only.
+    printf("Hello, from an RP2040!\r\n");
+#endif
+    while(true)
+    {
+        app.run();
     }
+
+    // stdio_init_all();
+    // const uint RADIO_RECEIVER_PIN = 17;
+    // gpio_init(RADIO_RECEIVER_PIN);
+
+    // RCSwitch rcSwitch = RCSwitch();
+    // rcSwitch.enableReceive(RADIO_RECEIVER_PIN);
+
+    // while (true) {
+    //     if (rcSwitch.available()) {
+    //         gpio_put(13, true);
+
+    //         rcSwitch.resetAvailable();
+    //     } else {
+    //         gpio_put(13, false);
+    //     }
+    // }    
+    
+        // while(true) {
+        //     mySwitch.send(ON_CODE,BIT_LENGTH);
+        //     gpio_put(13, true);
+        //     sleep_ms(20000);
+        //     mySwitch.send(OFF_CODE,BIT_LENGTH);
+        //     gpio_put(13, false);
+        //     sleep_ms(20000);
+        // }
+        // return 0;
 }
