@@ -57,6 +57,9 @@ void update_app_state()
     // If app registers update their states outside the read/write handler
     // functions, update them here.
     // (Called inside run() function.)
+    gpio_put(13, gpio_get(8));
+    app_regs.test_uint = gpio_get(8);
+    HarpCore::send_harp_reply(EVENT, 33);
 }
 
 // Create Harp App.
@@ -71,6 +74,12 @@ HarpCApp& app = HarpCApp::init(who_am_i, hw_version_major, hw_version_minor,
     app_reset);
 
 int main() {
+    // Init gpio
+    gpio_init(13);
+    gpio_set_dir(13, GPIO_OUT);
+    gpio_init(8);
+    gpio_set_dir(8, GPIO_IN);
+
     // Init Synchronizer.
     HarpSynchronizer& sync = HarpSynchronizer::init(uart1, 5);
     app.set_synchronizer(&sync);
