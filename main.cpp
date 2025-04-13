@@ -57,9 +57,23 @@ void update_app_state()
     // If app registers update their states outside the read/write handler
     // functions, update them here.
     // (Called inside run() function.)
-    gpio_put(13, gpio_get(8));
-    app_regs.test_uint = gpio_get(8);
-    HarpCore::send_harp_reply(EVENT, 33);
+
+    // gpio_put(13, gpio_get(8));
+    // app_regs.test_uint = gpio_get(8);
+    // HarpCore::send_harp_reply(EVENT, 33);
+
+    uint32_t pin_state = gpio_get(8);
+    uint32_t old_pin_state = app_regs.test_uint;
+
+    // update app reg
+    app_regs.test_uint = pin_state;
+
+    // filter for change
+    uint32_t changed_pin = ((old_pin_state ^ app_regs.test_uint));
+
+    if (changed_pin) {
+        HarpCore::send_harp_reply(EVENT, 33);
+    }
 }
 
 // Create Harp App.
