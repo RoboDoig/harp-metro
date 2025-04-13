@@ -45,16 +45,41 @@ RegFnPair reg_handler_fns[reg_count]
     {&HarpCore::read_reg_generic, &HarpCore::write_to_read_only_reg_error}
 };
 
+void app_reset()
+{
+    app_regs.test_byte = 0;
+    app_regs.test_uint = 0;
+}
+
+void update_app_state()
+{
+    // update here!
+    // If app registers update their states outside the read/write handler
+    // functions, update them here.
+    // (Called inside run() function.)
+}
+
+// Create Harp App.
+HarpCApp& app = HarpCApp::init(who_am_i, hw_version_major, hw_version_minor,
+    assembly_version,
+    harp_version_major, harp_version_minor,
+    fw_version_major, fw_version_minor,
+    serial_number, "ExampleDevice",
+    (const uint8_t*)GIT_HASH, // in CMakeLists.txt.
+    &app_regs, app_reg_specs,
+    reg_handler_fns, reg_count, update_app_state,
+    app_reset);
+
 int main() {
-    gpio_init(13);
-    gpio_set_dir(13, GPIO_OUT);
-    gpio_init(8);
-    gpio_set_dir(8, GPIO_IN);
-    while(true) {
-        // gpio_put(13, true);
-        // sleep_ms(100);
-        // gpio_put(13, false);
-        // sleep_ms(100);
-        gpio_put(13, gpio_get(8));
+    // Init Synchronizer.
+    HarpSynchronizer& sync = HarpSynchronizer::init(uart1, 5);
+    app.set_synchronizer(&sync);
+#ifdef DEBUG
+    stdio_uart_init_full(uart0, 921600, 0, -1); // use uart1 tx only.
+    printf("Hello, from an RP2040!\r\n");
+#endif
+    while(true)
+    {
+        app.run();
     }
 }

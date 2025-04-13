@@ -1,6 +1,10 @@
 # Generated Cmake Pico project file
 
 cmake_minimum_required(VERSION 3.13)
+find_package(Git REQUIRED)
+execute_process(COMMAND "${GIT_EXECUTABLE}" rev-parse --short HEAD OUTPUT_VARIABLE COMMIT_ID OUTPUT_STRIP_TRAILING_WHITESPACE)
+message(STATUS "Computed Git Hash: ${COMMIT_ID}")
+add_definitions(-DGIT_HASH="${COMMIT_ID}") # Usable in source code.
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
@@ -49,7 +53,7 @@ pico_enable_stdio_usb(harp-metro 0)
 # Add the standard library to the build
 target_link_libraries(harp-metro
         pico_stdlib)
-target_link_libraries(${PROJECT_NAME} harp_core harp_sync)
+target_link_libraries(harp-metro harp_core harp_sync harp_c_app)
 
 # Add the standard include files to the build
 target_include_directories(harp-metro PRIVATE
