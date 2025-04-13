@@ -23,6 +23,7 @@ const uint16_t serial_number = 0xCAFE;
 
 // Change this to be whatever pin is plugged into your "DATA" pin.
 const uint RADIO_TRANSMIT_PIN = 16;
+const uint RADIO_RECEIVER_PIN = 17;
 // You will need to change all of these values for your remote + plug.
 // You should first run the "recieve" example
 // to test out what your remote sends out.
@@ -86,14 +87,12 @@ void update_app_state()
 
     if (changed_pin) {
         HarpCore::send_harp_reply(EVENT, 33);
-        
-        if (pin_state) {
-            mySwitch.send(ON_CODE,BIT_LENGTH);
-            gpio_put(13, true);
-        } else {
-            mySwitch.send(ON_CODE,BIT_LENGTH);
-            gpio_put(13, false);
-        }
+    }
+
+    if (mySwitch.available()) {
+        gpio_put(13, false);
+    } else {
+        gpio_put(13, true);
     }
 
     HarpCore::send_harp_reply(EVENT, 34);
@@ -120,8 +119,10 @@ int main() {
     stdio_init_all();
     // Although calling enableTransmit sets the direction, we still need to init the pin.
     gpio_init(RADIO_TRANSMIT_PIN);
+    gpio_init(RADIO_RECEIVER_PIN);
     mySwitch = RCSwitch();
     mySwitch.enableTransmit(RADIO_TRANSMIT_PIN);
+    mySwitch.enableReceive(RADIO_RECEIVER_PIN);
     mySwitch.setProtocol(PROTOCOL);
     mySwitch.setPulseLength(PULSE_LENGTH);
     mySwitch.setRepeatTransmit(REPEAT_TRANSMIT);
