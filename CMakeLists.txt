@@ -38,6 +38,7 @@ project(harp-metro C CXX ASM)
 pico_sdk_init()
 
 add_subdirectory(./firmware/harp.core.rp2040/firmware build) # Path to harp.core.rp2040's CMakeLists.txt
+add_subdirectory(./firmware/rc.switch)
 
 # Add executable. Default name is the project name, version 0.1
 
@@ -53,7 +54,7 @@ pico_enable_stdio_usb(harp-metro 0)
 # Add the standard library to the build
 target_link_libraries(harp-metro
         pico_stdlib)
-target_link_libraries(harp-metro harp_core harp_sync harp_c_app)
+target_link_libraries(harp-metro harp_core harp_sync harp_c_app radio_switch)
 
 # Add the standard include files to the build
 target_include_directories(harp-metro PRIVATE

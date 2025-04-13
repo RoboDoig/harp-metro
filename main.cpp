@@ -7,6 +7,8 @@
     #include <pico/stdlib.h> // for uart printing
     #include <cstdio> // for printf
 #endif
+#include <radio_switch.h>
+
 
 // Create device name array.
 const uint16_t who_am_i = 1234;
@@ -91,18 +93,34 @@ int main() {
     // Init gpio
     gpio_init(13);
     gpio_set_dir(13, GPIO_OUT);
-    gpio_init(8);
-    gpio_set_dir(8, GPIO_IN);
+//     gpio_init(8);
+//     gpio_set_dir(8, GPIO_IN);
 
-    // Init Synchronizer.
-    HarpSynchronizer& sync = HarpSynchronizer::init(uart1, 5);
-    app.set_synchronizer(&sync);
-#ifdef DEBUG
-    stdio_uart_init_full(uart0, 921600, 0, -1); // use uart1 tx only.
-    printf("Hello, from an RP2040!\r\n");
-#endif
-    while(true)
-    {
-        app.run();
+//     // Init Synchronizer.
+//     HarpSynchronizer& sync = HarpSynchronizer::init(uart1, 5);
+//     app.set_synchronizer(&sync);
+// #ifdef DEBUG
+//     stdio_uart_init_full(uart0, 921600, 0, -1); // use uart1 tx only.
+//     printf("Hello, from an RP2040!\r\n");
+// #endif
+//     while(true)
+//     {
+//         app.run();
+//     }
+    stdio_init_all();
+    const uint RADIO_RECEIVER_PIN = 17;
+    gpio_init(RADIO_RECEIVER_PIN);
+
+    RCSwitch rcSwitch = RCSwitch();
+    rcSwitch.enableReceive(RADIO_RECEIVER_PIN);
+
+    while (true) {
+        if (rcSwitch.available()) {
+            gpio_put(13, true);
+
+            rcSwitch.resetAvailable();
+        } else {
+            gpio_put(13, false);
+        }
     }
 }
