@@ -6,6 +6,8 @@ execute_process(COMMAND "${GIT_EXECUTABLE}" rev-parse --short HEAD OUTPUT_VARIAB
 message(STATUS "Computed Git Hash: ${COMMIT_ID}")
 add_definitions(-DGIT_HASH="${COMMIT_ID}") # Usable in source code.
 
+add_definitions(-DRH_PLATFORM=20)
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -38,6 +40,7 @@ project(harp-metro C CXX ASM)
 pico_sdk_init()
 
 add_subdirectory(./firmware/harp.core.rp2040/firmware build) # Path to harp.core.rp2040's CMakeLists.txt
+include_directories(./firmware/RadioHead/)
 
 # Add executable. Default name is the project name, version 0.1
 
