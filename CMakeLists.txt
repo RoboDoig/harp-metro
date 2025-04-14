@@ -1,6 +1,10 @@
 # Generated Cmake Pico project file
 
 cmake_minimum_required(VERSION 3.13)
+find_package(Git REQUIRED)
+execute_process(COMMAND "${GIT_EXECUTABLE}" rev-parse --short HEAD OUTPUT_VARIABLE COMMIT_ID OUTPUT_STRIP_TRAILING_WHITESPACE)
+message(STATUS "Computed Git Hash: ${COMMIT_ID}")
+add_definitions(-DGIT_HASH="${COMMIT_ID}") # Usable in source code.
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
@@ -23,7 +27,7 @@ if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-set(PICO_BOARD pico2 CACHE STRING "Board type")
+set(PICO_BOARD adafruit_feather_rp2040 CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
@@ -33,9 +37,12 @@ project(harp-metro C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+add_subdirectory(./firmware/harp.core.rp2040/firmware build) # Path to harp.core.rp2040's CMakeLists.txt
+add_subdirectory(./firmware/rc.switch)
+
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(harp-metro harp-metro.c )
+add_executable(harp-metro main.cpp )
 
 pico_set_program_name(harp-metro "harp-metro")
 pico_set_program_version(harp-metro "0.1")
@@ -47,6 +54,7 @@ pico_enable_stdio_usb(harp-metro 0)
 # Add the standard library to the build
 target_link_libraries(harp-metro
         pico_stdlib)
+target_link_libraries(harp-metro harp_core harp_sync harp_c_app radio_switch)
 
 # Add the standard include files to the build
 target_include_directories(harp-metro PRIVATE
